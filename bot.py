@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MEGA File Renamer Telegram Bot for Vercel
+MEGA File Renamer Telegram Bot - Railway Version
 """
 
 import os
@@ -18,16 +18,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Configuration from environment variables
-APP_API_ID = int(os.getenv('APP_API_ID', '24737787'))
-APP_API_HASH = os.getenv('APP_API_HASH', '4e939ca9653badf9a871ce57b0c7c246')
-BOT_TOKEN = os.getenv('BOT_TOKEN', '8010019947:AAF-ZrgL-04gQAYO1Cn9oPnHXeK7sLk1Fnc')
-BOT_USERNAME = os.getenv('BOT_USERNAME', '@NewBotGhost_bot')
-OWNER_USERNAME = os.getenv('OWNER_USERNAME', '@Ghostkiller777')
-MEGA_EMAIL = os.getenv('MEGA_EMAIL', 'sinegal816@lorkex.com')
-MEGA_PASSWORD = os.getenv('MEGA_PASSWORD', 'Sajkwjnwi2872902unenbhdbnwj')
+BOT_TOKEN = os.environ['BOT_TOKEN']
+MEGA_EMAIL = os.environ['MEGA_EMAIL']
+MEGA_PASSWORD = os.environ['MEGA_PASSWORD']
 
 # Conversation states
-EMAIL, PASSWORD, CONFIRM = range(3)
+CONFIRM = 1
 
 class MegaRenamerBot:
     def __init__(self):
@@ -42,7 +38,7 @@ class MegaRenamerBot:
             "🔹 **Features:**\n"
             "• Rename ALL MEGA files to sam_1, sam_2, etc.\n"
             "• Preserve file extensions\n"
-            "• Fast parallel processing\n\n"
+            "• Fast processing\n\n"
             "⚠️ **Warning:** This is irreversible! Original filenames will be lost.\n\n"
             "Use /rename to start the process\n"
             "Use /help for instructions\n"
@@ -80,7 +76,7 @@ class MegaRenamerBot:
             "🤖 **Bot Status:**\n\n"
             "✅ Bot is running normally\n"
             "🔹 Ready to rename MEGA files\n"
-            f"🔹 Owner: {OWNER_USERNAME}\n"
+            "🔹 Hosted on Railway\n"
             "Use /rename to start"
         )
     
@@ -265,70 +261,41 @@ class MegaRenamerBot:
         except:
             pass
 
-# Initialize bot
-bot = MegaRenamerBot()
-
-def setup_application():
-    """Setup telegram application"""
-    application = Application.builder().token(BOT_TOKEN).build()
+def main():
+    """Main function to run the bot"""
+    # Initialize bot
+    bot_app = Application.builder().token(BOT_TOKEN).build()
+    
+    bot_instance = MegaRenamerBot()
     
     # Add conversation handler for rename process
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('rename', bot.rename)],
+        entry_points=[CommandHandler('rename', bot_instance.rename)],
         states={
             CONFIRM: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, bot.confirm_operation),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, bot.start_renaming)
+                MessageHandler(filters.TEXT & ~filters.COMMAND, bot_instance.confirm_operation),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, bot_instance.start_renaming)
             ]
         },
-        fallbacks=[CommandHandler('cancel', bot.cancel)]
+        fallbacks=[CommandHandler('cancel', bot_instance.cancel)]
     )
     
     # Add handlers
-    application.add_handler(CommandHandler('start', bot.start))
-    application.add_handler(CommandHandler('help', bot.help_command))
-    application.add_handler(CommandHandler('status', bot.status))
-    application.add_handler(conv_handler)
-    application.add_handler(CommandHandler('cancel', bot.cancel))
+    bot_app.add_handler(CommandHandler('start', bot_instance.start))
+    bot_app.add_handler(CommandHandler('help', bot_instance.help_command))
+    bot_app.add_handler(CommandHandler('status', bot_instance.status))
+    bot_app.add_handler(conv_handler)
+    bot_app.add_handler(CommandHandler('cancel', bot_instance.cancel))
     
     # Add error handler
-    application.add_error_handler(bot.error_handler)
+    bot_app.add_error_handler(bot_instance.error_handler)
     
-    return application
-
-# Vercel serverless function handler
-async def handler(request):
-    """Vercel serverless function handler"""
-    try:
-        application = setup_application()
-        
-        # Initialize and start polling (for webhook in production)
-        await application.initialize()
-        await application.start()
-        
-        # Process update
-        body = await request.json()
-        update = Update.de_json(body, application.bot)
-        await application.process_update(update)
-        
-        await application.stop()
-        
-        return {'statusCode': 200, 'body': 'OK'}
+    # Start the bot
+    print("🤖 MEGA Renamer Bot is starting...")
+    print("🔹 Bot is running on Railway")
+    print("🔹 Use /start on Telegram to begin")
     
-    except Exception as e:
-        logger.error(f"Handler error: {e}")
-        return {'statusCode': 500, 'body': 'Error'}
+    bot_app.run_polling()
 
-# For local testing
 if __name__ == "__main__":
-    async def main():
-        application = setup_application()
-        
-        print("🤖 Bot is starting...")
-        print(f"🔹 Bot Username: {BOT_USERNAME}")
-        print(f"🔹 Owner: {OWNER_USERNAME}")
-        print("🔹 Use /start to begin")
-        
-        await application.run_polling()
-    
-    asyncio.run(main())
+    main()
